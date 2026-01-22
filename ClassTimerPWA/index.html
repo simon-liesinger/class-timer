@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4285f4">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Class Timer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: rgba(255,255,255,0.8);
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .status-card {
+      text-align: center;
+      padding: 30px 20px;
+    }
+    .status-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .status-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+    }
+    .status-value.disabled {
+      color: #e53935;
+    }
+    .next-class {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #eee;
+    }
+    .next-class-label {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 4px;
+    }
+    .next-class-value {
+      font-size: 18px;
+      color: #4285f4;
+      font-weight: 600;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn-disable {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .btn-enable {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .btn-primary {
+      background: #4285f4;
+      color: white;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .row:last-child {
+      border-bottom: none;
+    }
+    .row label {
+      flex: 1;
+      font-size: 15px;
+      color: #333;
+    }
+    .row input[type="text"] {
+      width: 160px;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.2s;
+    }
+    .row input[type="text"]:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+    .row select {
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      background: white;
+    }
+    .notification-banner {
+      background: #fff3e0;
+      color: #e65100;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .notification-banner.show {
+      display: block;
+    }
+    .notification-banner button {
+      margin-top: 12px;
+      background: #e65100;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .disabled-banner {
+      background: #ffebee;
+      color: #c62828;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .disabled-banner.show {
+      display: block;
+    }
+    .install-banner {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .install-banner.show {
+      display: block;
+    }
+    .install-banner button {
+      margin-top: 12px;
+      background: #1565c0;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Class Timer</h1>
+    <p class="subtitle">Never be late to class again</p>
+
+    <div id="install-banner" class="install-banner">
+      <strong>Install this app!</strong><br>
+      Add Class Timer to your home screen for the best experience.
+      <br><button id="install-btn">Install App</button>
+    </div>
+
+    <div id="notification-banner" class="notification-banner">
+      <strong>Enable Notifications</strong><br>
+      Allow notifications to get alerts before classes start.
+      <br><button id="enable-notifications">Enable Notifications</button>
+    </div>
+
+    <div id="disabled-banner" class="disabled-banner">
+      Notifications disabled until <span id="disabled-until"></span>
+    </div>
+
+    <div class="card status-card">
+      <div class="status-label">Current Status</div>
+      <div class="status-value" id="status">Loading...</div>
+      <div class="next-class" id="next-class-container" style="display: none;">
+        <div class="next-class-label">Next up</div>
+        <div class="next-class-value" id="next-class"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Disable Notifications</div>
+      <div class="button-group">
+        <button class="btn btn-disable" id="disable-1day">1 Day</button>
+        <button class="btn btn-disable" id="disable-1week">1 Week</button>
+        <button class="btn btn-disable" id="disable-2weeks">2 Weeks</button>
+        <button class="btn btn-enable" id="enable">Enable</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Notification Delay</div>
+      <div class="row">
+        <label>Notify me</label>
+        <select id="delay">
+          <option value="1">1 min before</option>
+          <option value="2">2 min before</option>
+          <option value="3">3 min before</option>
+          <option value="5" selected>5 min before</option>
+          <option value="10">10 min before</option>
+          <option value="15">15 min before</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Class Names</div>
+      <div class="row">
+        <label>Line 1</label>
+        <input type="text" id="line-1" placeholder="e.g. Math">
+      </div>
+      <div class="row">
+        <label>Line 2</label>
+        <input type="text" id="line-2" placeholder="e.g. English">
+      </div>
+      <div class="row">
+        <label>Line 3</label>
+        <input type="text" id="line-3" placeholder="e.g. Science">
+      </div>
+      <div class="row">
+        <label>Line 4</label>
+        <input type="text" id="line-4" placeholder="e.g. History">
+      </div>
+      <div class="row">
+        <label>Line 5</label>
+        <input type="text" id="line-5" placeholder="e.g. Art">
+      </div>
+      <div class="row">
+        <label>Line 6</label>
+        <input type="text" id="line-6" placeholder="e.g. Music">
+      </div>
+      <div class="row">
+        <label>Line 7</label>
+        <input type="text" id="line-7" placeholder="e.g. PE">
+      </div>
+      <div class="row">
+        <label>Line 8</label>
+        <input type="text" id="line-8" placeholder="e.g. Tech">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Schedule configuration
+    const tuesdayLines = [6, 7, 8, 1];
+    const wednesdayLines = [5, 3, 4, 2];
+    const thursdayLines = [8, 1, 6, 7];
+    const fridayLines = [4, 2, 5, 3];
+
+    function getMondaySchedule() {
+      return [
+        { line: 1, startHour: 8, startMin: 50, endHour: 9, endMin: 40 },
+        { line: 2, startHour: 9, startMin: 40, endHour: 10, endMin: 30 },
+        { line: 3, startHour: 10, startMin: 30, endHour: 11, endMin: 20 },
+        { line: 4, startHour: 11, startMin: 20, endHour: 12, endMin: 10 },
+        { line: 5, startHour: 12, startMin: 40, endHour: 13, endMin: 30 },
+        { line: 6, startHour: 13, startMin: 30, endHour: 14, endMin: 20 },
+        { line: 7, startHour: 14, startMin: 20, endHour: 15, endMin: 10 },
+        { line: 8, startHour: 15, startMin: 10, endHour: 16, endMin: 0 },
+      ];
+    }
+
+    function getTuesdayToFridaySchedule(lines) {
+      const times = [
+        [8, 50, 10, 20],
+        [10, 35, 12, 5],
+        [12, 40, 13, 50],
+        [13, 50, 15, 0],
+      ];
+      return times.map((t, i) => ({
+        line: lines[i],
+        startHour: t[0],
+        startMin: t[1],
+        endHour: t[2],
+        endMin: t[3],
+      }));
+    }
+
+    function getTodaySchedule() {
+      const day = new Date().getDay();
+      switch (day) {
+        case 1: return getMondaySchedule();
+        case 2: return getTuesdayToFridaySchedule(tuesdayLines);
+        case 3: return getTuesdayToFridaySchedule(wednesdayLines);
+        case 4: return getTuesdayToFridaySchedule(thursdayLines);
+        case 5: return getTuesdayToFridaySchedule(fridayLines);
+        default: return null;
+      }
+    }
+
+    function getClassTime(period, isStart) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+        isStart ? period.startHour : period.endHour,
+        isStart ? period.startMin : period.endMin);
+    }
+
+    function pad(n) {
+      return n.toString().padStart(2, '0');
+    }
+
+    // Settings management
+    function loadSettings() {
+      const defaults = {
+        lineNames: {},
+        notificationDelay: 5,
+        disabledUntil: null
+      };
+      try {
+        const saved = localStorage.getItem('classTimerSettings');
+        if (saved) {
+          return { ...defaults, ...JSON.parse(saved) };
+        }
+      } catch (e) {}
+      return defaults;
+    }
+
+    function saveSettings(settings) {
+      localStorage.setItem('classTimerSettings', JSON.stringify(settings));
+      scheduleNotifications();
+    }
+
+    function getLineName(line) {
+      const settings = loadSettings();
+      const name = settings.lineNames[line];
+      return name && name.trim() !== '' ? name : null;
+    }
+
+    function isDisabled() {
+      const settings = loadSettings();
+      if (settings.disabledUntil) {
+        return new Date() < new Date(settings.disabledUntil);
+      }
+      return false;
+    }
+
+    // Status updates
+    function updateStatus() {
+      const statusEl = document.getElementById('status');
+      const nextClassContainer = document.getElementById('next-class-container');
+      const nextClassEl = document.getElementById('next-class');
+      const disabledBanner = document.getElementById('disabled-banner');
+      const disabledUntilEl = document.getElementById('disabled-until');
+      const settings = loadSettings();
+
+      // Check if disabled
+      if (isDisabled()) {
+        const until = new Date(settings.disabledUntil);
+        disabledUntilEl.textContent = until.toLocaleDateString();
+        disabledBanner.classList.add('show');
+        statusEl.textContent = 'Notifications Off';
+        statusEl.classList.add('disabled');
+        nextClassContainer.style.display = 'none';
+      } else {
+        disabledBanner.classList.remove('show');
+        statusEl.classList.remove('disabled');
+      }
+
+      const schedule = getTodaySchedule();
+      if (!schedule) {
+        statusEl.textContent = 'No classes today';
+        nextClassContainer.style.display = 'none';
+        return;
+      }
+
+      const now = new Date();
+
+      // Check if in a class
+      for (const period of schedule) {
+        const start = getClassTime(period, true);
+        const end = getClassTime(period, false);
+        if (now >= start && now < end) {
+          const name = getLineName(period.line) || `Line ${period.line}`;
+          statusEl.textContent = `In ${name}`;
+          nextClassContainer.style.display = 'block';
+          nextClassEl.textContent = `Until ${period.endHour}:${pad(period.endMin)}`;
+          return;
+        }
+      }
+
+      // Check for next class
+      for (const period of schedule) {
+        const start = getClassTime(period, true);
+        if (start > now) {
+          const name = getLineName(period.line) || `Line ${period.line}`;
+          const mins = Math.round((start - now) / 60000);
+          if (mins < 60) {
+            statusEl.textContent = `${name} in ${mins}m`;
+          } else {
+            statusEl.textContent = `Next: ${name}`;
+          }
+          nextClassContainer.style.display = 'block';
+          nextClassEl.textContent = `Starts at ${period.startHour}:${pad(period.startMin)}`;
+          return;
+        }
+      }
+
+      statusEl.textContent = 'Done for today';
+      nextClassContainer.style.display = 'none';
+    }
+
+    // Notifications
+    let scheduledTimeouts = [];
+
+    function scheduleNotifications() {
+      // Clear existing
+      scheduledTimeouts.forEach(t => clearTimeout(t));
+      scheduledTimeouts = [];
+
+      if (isDisabled()) return;
+      if (Notification.permission !== 'granted') return;
+
+      const schedule = getTodaySchedule();
+      if (!schedule) return;
+
+      const settings = loadSettings();
+      const delay = (settings.notificationDelay || 5) * 60 * 1000;
+      const now = new Date();
+
+      for (const period of schedule) {
+        const name = getLineName(period.line);
+        if (!name) continue;
+
+        const start = getClassTime(period, true);
+        const notifyTime = new Date(start.getTime() - delay);
+
+        if (notifyTime > now) {
+          const timeout = setTimeout(() => {
+            new Notification('Class Starting Soon', {
+              body: `${name} starts in ${settings.notificationDelay} minutes`,
+              icon: 'icon-192.png',
+              tag: `class-${period.line}`
+            });
+          }, notifyTime - now);
+          scheduledTimeouts.push(timeout);
+        }
+      }
+    }
+
+    // Initialize
+    function init() {
+      const settings = loadSettings();
+
+      // Populate line names
+      for (let i = 1; i <= 8; i++) {
+        const input = document.getElementById(`line-${i}`);
+        input.value = settings.lineNames[i] || '';
+        input.addEventListener('input', () => {
+          const current = loadSettings();
+          current.lineNames[i] = input.value;
+          saveSettings(current);
+          updateStatus();
+        });
+      }
+
+      // Delay select
+      const delaySelect = document.getElementById('delay');
+      delaySelect.value = (settings.notificationDelay || 5).toString();
+      delaySelect.addEventListener('change', () => {
+        const current = loadSettings();
+        current.notificationDelay = parseInt(delaySelect.value);
+        saveSettings(current);
+      });
+
+      // Disable buttons
+      document.getElementById('disable-1day').addEventListener('click', () => {
+        const current = loadSettings();
+        current.disabledUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        saveSettings(current);
+        updateStatus();
+      });
+
+      document.getElementById('disable-1week').addEventListener('click', () => {
+        const current = loadSettings();
+        current.disabledUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        saveSettings(current);
+        updateStatus();
+      });
+
+      document.getElementById('disable-2weeks').addEventListener('click', () => {
+        const current = loadSettings();
+        current.disabledUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        saveSettings(current);
+        updateStatus();
+      });
+
+      document.getElementById('enable').addEventListener('click', () => {
+        const current = loadSettings();
+        current.disabledUntil = null;
+        saveSettings(current);
+        updateStatus();
+      });
+
+      // Notification permission
+      const notificationBanner = document.getElementById('notification-banner');
+      if ('Notification' in window && Notification.permission === 'default') {
+        notificationBanner.classList.add('show');
+      }
+
+      document.getElementById('enable-notifications').addEventListener('click', async () => {
+        const result = await Notification.requestPermission();
+        if (result === 'granted') {
+          notificationBanner.classList.remove('show');
+          scheduleNotifications();
+        }
+      });
+
+      // Update status immediately and every 30 seconds
+      updateStatus();
+      setInterval(updateStatus, 30000);
+
+      // Schedule notifications
+      if (Notification.permission === 'granted') {
+        scheduleNotifications();
+      }
+
+      // Re-schedule at midnight
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 1);
+      setTimeout(() => {
+        scheduleNotifications();
+        setInterval(scheduleNotifications, 24 * 60 * 60 * 1000);
+      }, midnight - now);
+    }
+
+    // PWA Install prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-banner').classList.add('show');
+    });
+
+    document.getElementById('install-btn').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        if (result.outcome === 'accepted') {
+          document.getElementById('install-banner').classList.remove('show');
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
