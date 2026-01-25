@@ -297,9 +297,12 @@
     </div>
 
     <p style="text-align: center; font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px;">
-      Note: Keep the app open in the background for notifications to work.
+      Enable "Keep Alive" below to receive notifications when the app is in the background.
     </p>
-    <button id="test-notification" style="display: block; margin: 16px auto; padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Test Notification</button>
+    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+      <button id="keep-alive" style="padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Keep Alive: Off</button>
+      <button id="test-notification" style="padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Test Notification</button>
+    </div>
   </div>
 
   <script>
@@ -612,6 +615,61 @@
     // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
+    }
+
+    // Keep Alive - plays silent audio to prevent browser from suspending tab
+    let audioContext = null;
+    let keepAliveActive = false;
+
+    document.getElementById('keep-alive').addEventListener('click', async () => {
+      const btn = document.getElementById('keep-alive');
+
+      if (!keepAliveActive) {
+        try {
+          // Create audio context with silent oscillator
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+
+          // Set volume to nearly silent (not zero, or browser may optimize it away)
+          gainNode.gain.value = 0.001;
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          oscillator.start();
+
+          keepAliveActive = true;
+          btn.textContent = 'Keep Alive: On';
+          btn.style.background = '#43a047';
+
+          // Save preference
+          const settings = loadSettings();
+          settings.keepAlive = true;
+          saveSettings(settings);
+        } catch (e) {
+          btn.textContent = 'Keep Alive: Error';
+          btn.style.background = '#e53935';
+        }
+      } else {
+        if (audioContext) {
+          audioContext.close();
+          audioContext = null;
+        }
+        keepAliveActive = false;
+        btn.textContent = 'Keep Alive: Off';
+        btn.style.background = '#4285f4';
+
+        // Save preference
+        const settings = loadSettings();
+        settings.keepAlive = false;
+        saveSettings(settings);
+      }
+    });
+
+    // Restore keep-alive state on load
+    const savedSettings = loadSettings();
+    if (savedSettings.keepAlive) {
+      document.getElementById('keep-alive').click();
     }
 
     // Test notification button
