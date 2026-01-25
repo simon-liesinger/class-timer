@@ -440,11 +440,21 @@
           statusEl.textContent = `In ${name}`;
           nextClassContainer.style.display = 'block';
 
-          // Show next class if there is one
-          const nextPeriod = schedule[i + 1];
-          if (nextPeriod) {
-            const nextName = getLineName(nextPeriod.line) || `Line ${nextPeriod.line}`;
-            nextClassEl.textContent = `Next: ${nextName} at ${nextPeriod.startHour}:${pad(nextPeriod.startMin)}`;
+          // Find next class with a name set
+          let nextNamedPeriod = null;
+          for (let j = i + 1; j < schedule.length; j++) {
+            if (getLineName(schedule[j].line)) {
+              nextNamedPeriod = schedule[j];
+              break;
+            }
+          }
+
+          if (nextNamedPeriod) {
+            const nextName = getLineName(nextNamedPeriod.line);
+            nextClassEl.textContent = `Next: ${nextName} at ${nextNamedPeriod.startHour}:${pad(nextNamedPeriod.startMin)}`;
+          } else if (i < schedule.length - 1) {
+            // There are more periods but none have names - treat as break
+            nextClassEl.textContent = `Until ${period.endHour}:${pad(period.endMin)}`;
           } else {
             nextClassEl.textContent = `Last class - ends at ${period.endHour}:${pad(period.endMin)}`;
           }
@@ -452,11 +462,13 @@
         }
       }
 
-      // Check for next class
+      // Check for next class (skip empty lines)
       for (const period of schedule) {
+        const name = getLineName(period.line);
+        if (!name) continue; // Skip empty lines
+
         const start = getClassTime(period, true);
         if (start > now) {
-          const name = getLineName(period.line) || `Line ${period.line}`;
           const mins = Math.round((start - now) / 60000);
           if (mins < 60) {
             statusEl.textContent = `${name} in ${mins}m`;
