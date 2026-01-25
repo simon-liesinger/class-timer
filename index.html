@@ -298,6 +298,7 @@
         <p style="text-align: center; font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px;">
           Note: Keep the app open in the background for notifications to work.
         </p>
+        <button id="test-notification" style="display: block; margin: 16px auto; padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Test Notification</button>
       </div>
     </div>
   </div>
@@ -608,6 +609,29 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
+
+    // Test notification button
+    document.getElementById('test-notification').addEventListener('click', () => {
+      if (Notification.permission === 'granted') {
+        new Notification('Test Notification', {
+          body: 'Notifications are working!',
+          icon: 'icon-192.png'
+        });
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then(p => {
+          if (p === 'granted') {
+            new Notification('Test Notification', {
+              body: 'Notifications are now enabled!',
+              icon: 'icon-192.png'
+            });
+          } else {
+            alert('Notification permission denied');
+          }
+        });
+      } else {
+        alert('Notifications are blocked. Check browser settings.');
+      }
+    });
 
     // Start
     init();
