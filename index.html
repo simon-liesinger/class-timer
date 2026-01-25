@@ -436,7 +436,31 @@
         const start = getClassTime(period, true);
         const end = getClassTime(period, false);
         if (now >= start && now < end) {
-          const name = getLineName(period.line) || `Line ${period.line}`;
+          const name = getLineName(period.line);
+
+          // If this line is empty/inactive, show "No class" and look for next
+          if (!name) {
+            statusEl.textContent = 'No class';
+
+            // Find next class with a name
+            let nextNamedPeriod = null;
+            for (let j = i + 1; j < schedule.length; j++) {
+              if (getLineName(schedule[j].line)) {
+                nextNamedPeriod = schedule[j];
+                break;
+              }
+            }
+
+            if (nextNamedPeriod) {
+              const nextName = getLineName(nextNamedPeriod.line);
+              nextClassContainer.style.display = 'block';
+              nextClassEl.textContent = `Next: ${nextName} at ${nextNamedPeriod.startHour}:${pad(nextNamedPeriod.startMin)}`;
+            } else {
+              nextClassContainer.style.display = 'none';
+            }
+            return;
+          }
+
           statusEl.textContent = `In ${name}`;
           nextClassContainer.style.display = 'block';
 

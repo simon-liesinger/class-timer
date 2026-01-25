@@ -1,4 +1,4 @@
-const CACHE_NAME = 'classtimer-v11';
+const CACHE_NAME = 'classtimer-v12';
 const urlsToCache = [
   './',
   './index.html',
