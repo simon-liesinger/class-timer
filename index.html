@@ -294,11 +294,12 @@
         <label>Line 8</label>
         <input type="text" id="line-8" placeholder="e.g. Tech">
       </div>
-      <p style="text-align: center; font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px;">
-        Note: Keep the app open in the background for notifications to work.
-      </p>
-      <button id="test-notification" style="display: block; margin: 16px auto; padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Test Notification</button>
     </div>
+
+    <p style="text-align: center; font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px;">
+      Note: Keep the app open in the background for notifications to work.
+    </p>
+    <button id="test-notification" style="display: block; margin: 16px auto; padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Test Notification</button>
   </div>
 
   <script>
@@ -610,24 +611,45 @@
 
     // Test notification button
     document.getElementById('test-notification').addEventListener('click', () => {
+      const btn = document.getElementById('test-notification');
+
+      if (!('Notification' in window)) {
+        btn.textContent = 'ERROR: Notifications not supported';
+        btn.style.background = '#e53935';
+        return;
+      }
+
+      btn.textContent = 'Permission: ' + Notification.permission;
+
       if (Notification.permission === 'granted') {
-        new Notification('Test Notification', {
-          body: 'Notifications are working!',
-          icon: 'icon-192.png'
-        });
+        try {
+          new Notification('Test Notification', {
+            body: 'Notifications are working!',
+            icon: 'icon-192.png'
+          });
+          btn.textContent = 'Notification sent!';
+          btn.style.background = '#43a047';
+        } catch (e) {
+          btn.textContent = 'ERROR: ' + e.message;
+          btn.style.background = '#e53935';
+        }
       } else if (Notification.permission === 'default') {
+        btn.textContent = 'Requesting permission...';
         Notification.requestPermission().then(p => {
+          btn.textContent = 'Permission: ' + p;
           if (p === 'granted') {
             new Notification('Test Notification', {
               body: 'Notifications are now enabled!',
               icon: 'icon-192.png'
             });
+            btn.style.background = '#43a047';
           } else {
-            alert('Notification permission denied');
+            btn.style.background = '#e53935';
           }
         });
       } else {
-        alert('Notifications are blocked. Check browser settings.');
+        btn.textContent = 'Blocked - check browser settings';
+        btn.style.background = '#e53935';
       }
     });
 
