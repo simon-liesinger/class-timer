@@ -431,14 +431,23 @@
       const now = new Date();
 
       // Check if in a class
-      for (const period of schedule) {
+      for (let i = 0; i < schedule.length; i++) {
+        const period = schedule[i];
         const start = getClassTime(period, true);
         const end = getClassTime(period, false);
         if (now >= start && now < end) {
           const name = getLineName(period.line) || `Line ${period.line}`;
           statusEl.textContent = `In ${name}`;
           nextClassContainer.style.display = 'block';
-          nextClassEl.textContent = `Until ${period.endHour}:${pad(period.endMin)}`;
+
+          // Show next class if there is one
+          const nextPeriod = schedule[i + 1];
+          if (nextPeriod) {
+            const nextName = getLineName(nextPeriod.line) || `Line ${nextPeriod.line}`;
+            nextClassEl.textContent = `Next: ${nextName} at ${nextPeriod.startHour}:${pad(nextPeriod.startMin)}`;
+          } else {
+            nextClassEl.textContent = `Last class - ends at ${period.endHour}:${pad(period.endMin)}`;
+          }
           return;
         }
       }
