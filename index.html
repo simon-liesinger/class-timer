@@ -487,12 +487,17 @@
         const notifyTime = new Date(start.getTime() - delay);
 
         if (notifyTime > now) {
-          const timeout = setTimeout(() => {
-            new Notification('Class Starting Soon', {
-              body: `${name} starts in ${settings.notificationDelay} minutes`,
-              icon: 'icon-192.png',
-              tag: `class-${period.line}`
-            });
+          const timeout = setTimeout(async () => {
+            try {
+              const reg = await navigator.serviceWorker.ready;
+              await reg.showNotification('Class Starting Soon', {
+                body: `${name} starts in ${settings.notificationDelay} minutes`,
+                icon: 'icon-192.png',
+                tag: `class-${period.line}`
+              });
+            } catch (e) {
+              console.error('Notification failed:', e);
+            }
           }, notifyTime - now);
           scheduledTimeouts.push(timeout);
         }
@@ -610,7 +615,7 @@
     }
 
     // Test notification button
-    document.getElementById('test-notification').addEventListener('click', () => {
+    document.getElementById('test-notification').addEventListener('click', async () => {
       const btn = document.getElementById('test-notification');
 
       if (!('Notification' in window)) {
@@ -623,7 +628,8 @@
 
       if (Notification.permission === 'granted') {
         try {
-          new Notification('Test Notification', {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification('Test Notification', {
             body: 'Notifications are working!',
             icon: 'icon-192.png'
           });
@@ -635,10 +641,11 @@
         }
       } else if (Notification.permission === 'default') {
         btn.textContent = 'Requesting permission...';
-        Notification.requestPermission().then(p => {
+        Notification.requestPermission().then(async p => {
           btn.textContent = 'Permission: ' + p;
           if (p === 'granted') {
-            new Notification('Test Notification', {
+            const reg = await navigator.serviceWorker.ready;
+            await reg.showNotification('Test Notification', {
               body: 'Notifications are now enabled!',
               icon: 'icon-192.png'
             });
