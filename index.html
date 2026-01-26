@@ -456,6 +456,8 @@
               nextClassContainer.style.display = 'block';
               nextClassEl.textContent = `Next: ${nextName} at ${nextNamedPeriod.startHour}:${pad(nextNamedPeriod.startMin)}`;
             } else {
+              // No more classes today
+              statusEl.textContent = 'End of day';
               nextClassContainer.style.display = 'none';
             }
             return;
@@ -508,7 +510,7 @@
         }
       }
 
-      statusEl.textContent = 'Done for today';
+      statusEl.textContent = 'End of day';
       nextClassContainer.style.display = 'none';
     }
 
