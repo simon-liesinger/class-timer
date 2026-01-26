@@ -546,8 +546,19 @@
               await reg.showNotification('Class Starting Soon', {
                 body: `${name} starts in ${settings.notificationDelay} minutes`,
                 icon: 'icon-192.png',
-                tag: `class-${period.line}`
+                tag: `class-${period.line}`,
+                requireInteraction: false
               });
+
+              // Auto-dismiss notification when class starts
+              setTimeout(async () => {
+                try {
+                  const notifications = await reg.getNotifications({ tag: `class-${period.line}` });
+                  notifications.forEach(n => n.close());
+                } catch (e) {
+                  console.error('Failed to close notification:', e);
+                }
+              }, delay);
             } catch (e) {
               console.error('Notification failed:', e);
             }
