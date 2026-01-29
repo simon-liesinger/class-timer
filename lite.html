@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Timer Lite</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 500px; margin: 0 auto; }
+    h1 { color: white; text-align: center; margin-bottom: 8px; font-size: 28px; }
+    .subtitle { color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 24px; font-size: 14px; }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .status-card { text-align: center; padding: 30px 20px; }
+    .status-label { font-size: 14px; color: #666; margin-bottom: 8px; }
+    .status-value { font-size: 24px; font-weight: 700; color: #333; }
+    .next-class { margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; }
+    .next-class-label { font-size: 12px; color: #999; margin-bottom: 4px; }
+    .next-class-value { font-size: 18px; color: #4285f4; font-weight: 600; }
+    .section-title {
+      font-size: 12px; font-weight: 600; color: #666;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+    }
+    .line-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .line-input { display: flex; align-items: center; gap: 8px; }
+    .line-input label { font-size: 14px; color: #666; min-width: 50px; }
+    .line-input input {
+      flex: 1; padding: 10px 12px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 14px;
+    }
+    .note { text-align: center; font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Class Timer</h1>
+    <p class="subtitle">Lite Version (No notifications)</p>
+
+    <div class="card status-card">
+      <div class="status-label">Current Status</div>
+      <div class="status-value" id="status">Loading...</div>
+      <div class="next-class" id="next-class-container" style="display: none;">
+        <div class="next-class-label">Next up</div>
+        <div class="next-class-value" id="next-class"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Line Names</div>
+      <p style="font-size: 13px; color: #888; margin-bottom: 12px;">Enter your class names below.</p>
+      <div class="line-inputs">
+        <div class="line-input"><label>Line 1</label><input type="text" id="line-1"></div>
+        <div class="line-input"><label>Line 2</label><input type="text" id="line-2"></div>
+        <div class="line-input"><label>Line 3</label><input type="text" id="line-3"></div>
+        <div class="line-input"><label>Line 4</label><input type="text" id="line-4"></div>
+        <div class="line-input"><label>Line 5</label><input type="text" id="line-5"></div>
+        <div class="line-input"><label>Line 6</label><input type="text" id="line-6"></div>
+        <div class="line-input"><label>Line 7</label><input type="text" id="line-7"></div>
+        <div class="line-input"><label>Line 8</label><input type="text" id="line-8"></div>
+      </div>
+    </div>
+
+    <p class="note">This lite version shows your schedule but cannot send notifications.</p>
+  </div>
+
+  <script>
+    var tuesdayLines = [6, 7, 8, 1];
+    var wednesdayLines = [5, 3, 4, 2];
+    var thursdayLines = [8, 1, 6, 7];
+    var fridayLines = [4, 2, 5, 3];
+
+    function getMondaySchedule() {
+      return [
+        { line: 1, startHour: 8, startMin: 50, endHour: 9, endMin: 40 },
+        { line: 2, startHour: 9, startMin: 40, endHour: 10, endMin: 30 },
+        { line: 3, startHour: 10, startMin: 30, endHour: 11, endMin: 20 },
+        { line: 4, startHour: 11, startMin: 20, endHour: 12, endMin: 10 },
+        { line: 5, startHour: 12, startMin: 40, endHour: 13, endMin: 30 },
+        { line: 6, startHour: 13, startMin: 30, endHour: 14, endMin: 20 },
+        { line: 7, startHour: 14, startMin: 20, endHour: 15, endMin: 10 },
+        { line: 8, startHour: 15, startMin: 10, endHour: 16, endMin: 0 }
+      ];
+    }
+
+    function getWeekdaySchedule(lines) {
+      return [
+        { line: lines[0], startHour: 8, startMin: 50, endHour: 10, endMin: 20 },
+        { line: lines[1], startHour: 10, startMin: 35, endHour: 12, endMin: 5 },
+        { line: lines[2], startHour: 12, startMin: 40, endHour: 13, endMin: 50 },
+        { line: lines[3], startHour: 13, startMin: 50, endHour: 15, endMin: 0 }
+      ];
+    }
+
+    function getTodaySchedule() {
+      var day = new Date().getDay();
+      if (day === 0 || day === 6) return null;
+      if (day === 1) return getMondaySchedule();
+      if (day === 2) return getWeekdaySchedule(tuesdayLines);
+      if (day === 3) return getWeekdaySchedule(wednesdayLines);
+      if (day === 4) return getWeekdaySchedule(thursdayLines);
+      if (day === 5) return getWeekdaySchedule(fridayLines);
+      return null;
+    }
+
+    function getClassTime(period, isStart) {
+      var now = new Date();
+      var time = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+        isStart ? period.startHour : period.endHour,
+        isStart ? period.startMin : period.endMin);
+      return time;
+    }
+
+    function formatTime(date) {
+      var h = date.getHours();
+      var m = date.getMinutes();
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      if (h === 0) h = 12;
+      return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+    }
+
+    function getLineName(line) {
+      var input = document.getElementById('line-' + line);
+      var name = input ? input.value : '';
+      return name && name.trim() !== '' ? name.trim() : ('Line ' + line);
+    }
+
+    function updateStatus() {
+      var statusEl = document.getElementById('status');
+      var nextClassContainer = document.getElementById('next-class-container');
+      var nextClassEl = document.getElementById('next-class');
+
+      var schedule = getTodaySchedule();
+      if (!schedule) {
+        statusEl.textContent = 'No classes today';
+        nextClassContainer.style.display = 'none';
+        return;
+      }
+
+      var now = new Date();
+
+      for (var i = 0; i < schedule.length; i++) {
+        var period = schedule[i];
+        var start = getClassTime(period, true);
+        var end = getClassTime(period, false);
+        var name = getLineName(period.line);
+
+        if (now < start) {
+          var diff = start - now;
+          var mins = Math.floor(diff / 60000);
+          var hrs = Math.floor(mins / 60);
+          mins = mins % 60;
+
+          if (hrs > 0) {
+            statusEl.textContent = name + ' in ' + hrs + 'h ' + mins + 'm';
+          } else {
+            statusEl.textContent = name + ' in ' + mins + ' min';
+          }
+
+          var nextPeriod = schedule[i + 1];
+          if (nextPeriod) {
+            nextClassContainer.style.display = 'block';
+            nextClassEl.textContent = getLineName(nextPeriod.line) + ' at ' + formatTime(getClassTime(nextPeriod, true));
+          } else {
+            nextClassContainer.style.display = 'none';
+          }
+          return;
+        }
+
+        if (now >= start && now < end) {
+          var remaining = end - now;
+          var mins = Math.floor(remaining / 60000);
+          statusEl.textContent = name + ' (' + mins + ' min left)';
+
+          var nextPeriod = schedule[i + 1];
+          if (nextPeriod) {
+            nextClassContainer.style.display = 'block';
+            nextClassEl.textContent = getLineName(nextPeriod.line) + ' at ' + formatTime(getClassTime(nextPeriod, true));
+          } else {
+            nextClassContainer.style.display = 'none';
+          }
+          return;
+        }
+      }
+
+      statusEl.textContent = 'End of day';
+      nextClassContainer.style.display = 'none';
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 30000);
+  </script>
+</body>
+</html>
