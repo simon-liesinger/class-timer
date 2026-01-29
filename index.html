@@ -216,16 +216,9 @@
     </div>
 
     <div id="notification-banner" class="notification-banner">
-      <span id="notification-banner-enable">
-        <strong>Enable Notifications</strong><br>
-        Allow notifications to get alerts before classes start.
-        <br><button id="enable-notifications">Enable Notifications</button>
-      </span>
-      <span id="notification-banner-disable" style="display: none;">
-        <strong>Notifications Enabled</strong><br>
-        You'll receive alerts before classes start.
-        <br><button id="disable-indefinitely">Disable Indefinitely</button>
-      </span>
+      <strong>Enable Notifications</strong><br>
+      Allow notifications to get alerts before classes start.
+      <br><button id="enable-notifications">Enable Notifications</button>
     </div>
 
     <div id="disabled-banner" class="disabled-banner">
@@ -242,12 +235,13 @@
     </div>
 
     <div class="card">
-      <div class="section-title">Disable Notifications</div>
+      <div class="section-title" id="disable-section-title">Disable Notifications</div>
       <div class="button-group">
         <button class="btn btn-disable" id="disable-1day">1 Day</button>
         <button class="btn btn-disable" id="disable-1week">1 Week</button>
         <button class="btn btn-disable" id="disable-2weeks">2 Weeks</button>
-        <button class="btn btn-enable" id="enable">Enable</button>
+        <button class="btn btn-disable" id="disable-indefinitely">Indefinitely</button>
+        <button class="btn btn-enable" id="enable" style="display: none;">Enable</button>
       </div>
     </div>
 
@@ -647,6 +641,7 @@
         current.disabledUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         saveSettings(current);
         updateStatus();
+        updateDisableButtons();
       });
 
       document.getElementById('disable-1week').addEventListener('click', () => {
@@ -654,6 +649,7 @@
         current.disabledUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         saveSettings(current);
         updateStatus();
+        updateDisableButtons();
       });
 
       document.getElementById('disable-2weeks').addEventListener('click', () => {
@@ -661,6 +657,7 @@
         current.disabledUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         saveSettings(current);
         updateStatus();
+        updateDisableButtons();
       });
 
       document.getElementById('enable').addEventListener('click', () => {
@@ -670,26 +667,47 @@
         saveSettings(current);
         updateStatus();
         scheduleNotifications();
-        updateNotificationBanner();
+        updateDisableButtons();
       });
 
-      // Notification permission
+      document.getElementById('disable-indefinitely').addEventListener('click', () => {
+        const settings = loadSettings();
+        settings.disabledIndefinitely = true;
+        saveSettings(settings);
+        scheduledTimeouts.forEach(t => clearTimeout(t));
+        scheduledTimeouts = [];
+        updateStatus();
+        updateDisableButtons();
+      });
+
+      // Toggle between Indefinitely and Enable buttons based on disabled state
+      function updateDisableButtons() {
+        const settings = loadSettings();
+        const isCurrentlyDisabled = isDisabled() || settings.disabledIndefinitely;
+        const indefinitelyBtn = document.getElementById('disable-indefinitely');
+        const enableBtn = document.getElementById('enable');
+        const sectionTitle = document.getElementById('disable-section-title');
+
+        if (isCurrentlyDisabled) {
+          indefinitelyBtn.style.display = 'none';
+          enableBtn.style.display = '';
+          sectionTitle.textContent = 'Enable Notifications';
+        } else {
+          indefinitelyBtn.style.display = '';
+          enableBtn.style.display = 'none';
+          sectionTitle.textContent = 'Disable Notifications';
+        }
+      }
+
+      updateDisableButtons();
+
+      // Notification permission banner (only shown when permission not yet granted)
       const notificationBanner = document.getElementById('notification-banner');
-      const enableContent = document.getElementById('notification-banner-enable');
-      const disableContent = document.getElementById('notification-banner-disable');
 
       function updateNotificationBanner() {
         try {
           if (!('Notification' in window)) return;
-
-          const settings = loadSettings();
           if (Notification.permission === 'default') {
-            enableContent.style.display = '';
-            disableContent.style.display = 'none';
-            notificationBanner.classList.add('show');
-          } else if (Notification.permission === 'granted' && !settings.disabledIndefinitely) {
-            enableContent.style.display = 'none';
-            disableContent.style.display = '';
             notificationBanner.classList.add('show');
           } else {
             notificationBanner.classList.remove('show');
@@ -705,16 +723,6 @@
           updateNotificationBanner();
           scheduleNotifications();
         }
-      });
-
-      document.getElementById('disable-indefinitely').addEventListener('click', () => {
-        const settings = loadSettings();
-        settings.disabledIndefinitely = true;
-        saveSettings(settings);
-        scheduledTimeouts.forEach(t => clearTimeout(t));
-        scheduledTimeouts = [];
-        updateNotificationBanner();
-        updateStatus();
       });
 
       // Update status immediately and every 30 seconds
