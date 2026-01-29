@@ -370,7 +370,26 @@
       return n.toString().padStart(2, '0');
     }
 
-    // Settings management
+    // Cookie helpers
+    function setCookie(name, value, days) {
+      try {
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+      } catch (e) {}
+    }
+
+    function getCookie(name) {
+      try {
+        const cookies = document.cookie.split('; ');
+        for (const cookie of cookies) {
+          const [key, val] = cookie.split('=');
+          if (key === name) return decodeURIComponent(val);
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    // Settings management (uses cookies, falls back to localStorage)
     function loadSettings() {
       const defaults = {
         lineNames: {},
@@ -378,6 +397,12 @@
         disabledUntil: null
       };
       try {
+        // Try cookies first
+        const cookieData = getCookie('classTimerSettings');
+        if (cookieData) {
+          return { ...defaults, ...JSON.parse(cookieData) };
+        }
+        // Fall back to localStorage
         const saved = localStorage.getItem('classTimerSettings');
         if (saved) {
           return { ...defaults, ...JSON.parse(saved) };
@@ -388,6 +413,9 @@
 
     function saveSettings(settings) {
       try {
+        // Save to cookies (expire in 1 year)
+        setCookie('classTimerSettings', JSON.stringify(settings), 365);
+        // Also try localStorage as backup
         localStorage.setItem('classTimerSettings', JSON.stringify(settings));
       } catch (e) {}
       scheduleNotifications();

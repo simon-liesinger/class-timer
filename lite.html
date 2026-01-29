@@ -80,6 +80,47 @@
     var thursdayLines = [8, 1, 6, 7];
     var fridayLines = [4, 2, 5, 3];
 
+    // Cookie helpers
+    function setCookie(name, value, days) {
+      try {
+        var expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+      } catch (e) {}
+    }
+
+    function getCookie(name) {
+      try {
+        var cookies = document.cookie.split('; ');
+        for (var i = 0; i < cookies.length; i++) {
+          var parts = cookies[i].split('=');
+          if (parts[0] === name) return decodeURIComponent(parts[1]);
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function saveLineNames() {
+      var names = {};
+      for (var i = 1; i <= 8; i++) {
+        var input = document.getElementById('line-' + i);
+        if (input && input.value) names[i] = input.value;
+      }
+      setCookie('classTimerLines', JSON.stringify(names), 365);
+    }
+
+    function loadLineNames() {
+      try {
+        var data = getCookie('classTimerLines');
+        if (data) {
+          var names = JSON.parse(data);
+          for (var i = 1; i <= 8; i++) {
+            var input = document.getElementById('line-' + i);
+            if (input && names[i]) input.value = names[i];
+          }
+        }
+      } catch (e) {}
+    }
+
     function getMondaySchedule() {
       return [
         { line: 1, startHour: 8, startMin: 50, endHour: 9, endMin: 40 },
@@ -196,6 +237,18 @@
 
       statusEl.textContent = 'End of day';
       nextClassContainer.style.display = 'none';
+    }
+
+    // Load saved names and set up auto-save
+    loadLineNames();
+    for (var i = 1; i <= 8; i++) {
+      var input = document.getElementById('line-' + i);
+      if (input) {
+        input.addEventListener('input', function() {
+          saveLineNames();
+          updateStatus();
+        });
+      }
     }
 
     updateStatus();
