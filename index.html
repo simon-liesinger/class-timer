@@ -387,7 +387,9 @@
     }
 
     function saveSettings(settings) {
-      localStorage.setItem('classTimerSettings', JSON.stringify(settings));
+      try {
+        localStorage.setItem('classTimerSettings', JSON.stringify(settings));
+      } catch (e) {}
       scheduleNotifications();
     }
 
@@ -535,51 +537,54 @@
       scheduledTimeouts.forEach(t => clearTimeout(t));
       scheduledTimeouts = [];
 
-      const settings = loadSettings();
-      if (isDisabled()) return;
-      if (settings.disabledIndefinitely) return;
-      if (Notification.permission !== 'granted') return;
+      try {
+        const settings = loadSettings();
+        if (isDisabled()) return;
+        if (settings.disabledIndefinitely) return;
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
-      const schedule = getTodaySchedule();
-      if (!schedule) return;
+        const schedule = getTodaySchedule();
+        if (!schedule) return;
 
-      const settings = loadSettings();
-      const delay = (settings.notificationDelay || 5) * 60 * 1000;
-      const now = new Date();
+        const delay = (settings.notificationDelay || 5) * 60 * 1000;
+        const now = new Date();
 
-      for (const period of schedule) {
-        const name = getLineName(period.line);
-        if (!name) continue;
+        for (const period of schedule) {
+          const name = getLineName(period.line);
+          if (!name) continue;
 
-        const start = getClassTime(period, true);
-        const notifyTime = new Date(start.getTime() - delay);
+          const start = getClassTime(period, true);
+          const notifyTime = new Date(start.getTime() - delay);
 
-        if (notifyTime > now) {
-          const timeout = setTimeout(async () => {
-            try {
-              const reg = await navigator.serviceWorker.ready;
-              await reg.showNotification('Class Starting Soon', {
-                body: `${name} starts in ${settings.notificationDelay} minutes`,
-                icon: 'icon-192.png',
-                tag: `class-${period.line}`,
-                requireInteraction: false
-              });
+          if (notifyTime > now) {
+            const timeout = setTimeout(async () => {
+              try {
+                const reg = await navigator.serviceWorker.ready;
+                await reg.showNotification('Class Starting Soon', {
+                  body: `${name} starts in ${settings.notificationDelay} minutes`,
+                  icon: 'icon-192.png',
+                  tag: `class-${period.line}`,
+                  requireInteraction: false
+                });
 
-              // Auto-dismiss notification when class starts
-              setTimeout(async () => {
-                try {
-                  const notifications = await reg.getNotifications({ tag: `class-${period.line}` });
-                  notifications.forEach(n => n.close());
-                } catch (e) {
-                  console.error('Failed to close notification:', e);
-                }
-              }, delay);
-            } catch (e) {
-              console.error('Notification failed:', e);
-            }
-          }, notifyTime - now);
-          scheduledTimeouts.push(timeout);
+                // Auto-dismiss notification when class starts
+                setTimeout(async () => {
+                  try {
+                    const notifications = await reg.getNotifications({ tag: `class-${period.line}` });
+                    notifications.forEach(n => n.close());
+                  } catch (e) {
+                    console.error('Failed to close notification:', e);
+                  }
+                }, delay);
+              } catch (e) {
+                console.error('Notification failed:', e);
+              }
+            }, notifyTime - now);
+            scheduledTimeouts.push(timeout);
+          }
         }
+      } catch (e) {
+        console.error('scheduleNotifications error:', e);
       }
     }
 
@@ -646,20 +651,22 @@
       const disableContent = document.getElementById('notification-banner-disable');
 
       function updateNotificationBanner() {
-        if (!('Notification' in window)) return;
+        try {
+          if (!('Notification' in window)) return;
 
-        const settings = loadSettings();
-        if (Notification.permission === 'default') {
-          enableContent.style.display = '';
-          disableContent.style.display = 'none';
-          notificationBanner.classList.add('show');
-        } else if (Notification.permission === 'granted' && !settings.disabledIndefinitely) {
-          enableContent.style.display = 'none';
-          disableContent.style.display = '';
-          notificationBanner.classList.add('show');
-        } else {
-          notificationBanner.classList.remove('show');
-        }
+          const settings = loadSettings();
+          if (Notification.permission === 'default') {
+            enableContent.style.display = '';
+            disableContent.style.display = 'none';
+            notificationBanner.classList.add('show');
+          } else if (Notification.permission === 'granted' && !settings.disabledIndefinitely) {
+            enableContent.style.display = 'none';
+            disableContent.style.display = '';
+            notificationBanner.classList.add('show');
+          } else {
+            notificationBanner.classList.remove('show');
+          }
+        } catch (e) {}
       }
 
       updateNotificationBanner();
@@ -687,9 +694,11 @@
       setInterval(updateStatus, 30000);
 
       // Schedule notifications
-      if (Notification.permission === 'granted') {
-        scheduleNotifications();
-      }
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          scheduleNotifications();
+        }
+      } catch (e) {}
 
       // Re-schedule at midnight
       const now = new Date();
@@ -774,13 +783,20 @@
     });
 
     // Restore keep-alive state on load
-    const savedSettings = loadSettings();
-    if (savedSettings.keepAlive) {
-      document.getElementById('keep-alive').click();
-    }
+    try {
+      const savedSettings = loadSettings();
+      if (savedSettings.keepAlive) {
+        document.getElementById('keep-alive').click();
+      }
+    } catch (e) {}
 
     // Start
-    init();
+    try {
+      init();
+    } catch (e) {
+      console.error('init error:', e);
+      document.getElementById('status').textContent = 'Error loading';
+    }
   </script>
 </body>
 </html>
