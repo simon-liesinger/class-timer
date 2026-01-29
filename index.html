@@ -216,9 +216,16 @@
     </div>
 
     <div id="notification-banner" class="notification-banner">
-      <strong>Enable Notifications</strong><br>
-      Allow notifications to get alerts before classes start.
-      <br><button id="enable-notifications">Enable Notifications</button>
+      <span id="notification-banner-enable">
+        <strong>Enable Notifications</strong><br>
+        Allow notifications to get alerts before classes start.
+        <br><button id="enable-notifications">Enable Notifications</button>
+      </span>
+      <span id="notification-banner-disable" style="display: none;">
+        <strong>Notifications Enabled</strong><br>
+        You'll receive alerts before classes start.
+        <br><button id="disable-indefinitely">Disable Indefinitely</button>
+      </span>
     </div>
 
     <div id="disabled-banner" class="disabled-banner">
@@ -301,7 +308,6 @@
     </p>
     <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
       <button id="keep-alive" style="padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Keep Alive: Off</button>
-      <button id="test-notification" style="padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Test Notification</button>
     </div>
   </div>
 
@@ -409,13 +415,20 @@
       const settings = loadSettings();
 
       // Check if disabled
-      if (isDisabled()) {
+      if (settings.disabledIndefinitely) {
+        disabledBanner.classList.remove('show');
+        statusEl.textContent = 'Notifications Off';
+        statusEl.classList.add('disabled');
+        nextClassContainer.style.display = 'none';
+        return;
+      } else if (isDisabled()) {
         const until = new Date(settings.disabledUntil);
         disabledUntilEl.textContent = until.toLocaleDateString();
         disabledBanner.classList.add('show');
         statusEl.textContent = 'Notifications Off';
         statusEl.classList.add('disabled');
         nextClassContainer.style.display = 'none';
+        return;
       } else {
         disabledBanner.classList.remove('show');
         statusEl.classList.remove('disabled');
@@ -522,7 +535,9 @@
       scheduledTimeouts.forEach(t => clearTimeout(t));
       scheduledTimeouts = [];
 
+      const settings = loadSettings();
       if (isDisabled()) return;
+      if (settings.disabledIndefinitely) return;
       if (Notification.permission !== 'granted') return;
 
       const schedule = getTodaySchedule();
@@ -618,22 +633,53 @@
       document.getElementById('enable').addEventListener('click', () => {
         const current = loadSettings();
         current.disabledUntil = null;
+        current.disabledIndefinitely = false;
         saveSettings(current);
         updateStatus();
+        scheduleNotifications();
+        updateNotificationBanner();
       });
 
       // Notification permission
       const notificationBanner = document.getElementById('notification-banner');
-      if ('Notification' in window && Notification.permission === 'default') {
-        notificationBanner.classList.add('show');
+      const enableContent = document.getElementById('notification-banner-enable');
+      const disableContent = document.getElementById('notification-banner-disable');
+
+      function updateNotificationBanner() {
+        if (!('Notification' in window)) return;
+
+        const settings = loadSettings();
+        if (Notification.permission === 'default') {
+          enableContent.style.display = '';
+          disableContent.style.display = 'none';
+          notificationBanner.classList.add('show');
+        } else if (Notification.permission === 'granted' && !settings.disabledIndefinitely) {
+          enableContent.style.display = 'none';
+          disableContent.style.display = '';
+          notificationBanner.classList.add('show');
+        } else {
+          notificationBanner.classList.remove('show');
+        }
       }
+
+      updateNotificationBanner();
 
       document.getElementById('enable-notifications').addEventListener('click', async () => {
         const result = await Notification.requestPermission();
         if (result === 'granted') {
-          notificationBanner.classList.remove('show');
+          updateNotificationBanner();
           scheduleNotifications();
         }
+      });
+
+      document.getElementById('disable-indefinitely').addEventListener('click', () => {
+        const settings = loadSettings();
+        settings.disabledIndefinitely = true;
+        saveSettings(settings);
+        scheduledTimeouts.forEach(t => clearTimeout(t));
+        scheduledTimeouts = [];
+        updateNotificationBanner();
+        updateStatus();
       });
 
       // Update status immediately and every 30 seconds
@@ -732,52 +778,6 @@
     if (savedSettings.keepAlive) {
       document.getElementById('keep-alive').click();
     }
-
-    // Test notification button
-    document.getElementById('test-notification').addEventListener('click', async () => {
-      const btn = document.getElementById('test-notification');
-
-      if (!('Notification' in window)) {
-        btn.textContent = 'ERROR: Notifications not supported';
-        btn.style.background = '#e53935';
-        return;
-      }
-
-      btn.textContent = 'Permission: ' + Notification.permission;
-
-      if (Notification.permission === 'granted') {
-        try {
-          const reg = await navigator.serviceWorker.ready;
-          await reg.showNotification('Test Notification', {
-            body: 'Notifications are working!',
-            icon: 'icon-192.png'
-          });
-          btn.textContent = 'Notification sent!';
-          btn.style.background = '#43a047';
-        } catch (e) {
-          btn.textContent = 'ERROR: ' + e.message;
-          btn.style.background = '#e53935';
-        }
-      } else if (Notification.permission === 'default') {
-        btn.textContent = 'Requesting permission...';
-        Notification.requestPermission().then(async p => {
-          btn.textContent = 'Permission: ' + p;
-          if (p === 'granted') {
-            const reg = await navigator.serviceWorker.ready;
-            await reg.showNotification('Test Notification', {
-              body: 'Notifications are now enabled!',
-              icon: 'icon-192.png'
-            });
-            btn.style.background = '#43a047';
-          } else {
-            btn.style.background = '#e53935';
-          }
-        });
-      } else {
-        btn.textContent = 'Blocked - check browser settings';
-        btn.style.background = '#e53935';
-      }
-    });
 
     // Start
     init();
