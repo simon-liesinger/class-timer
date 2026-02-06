@@ -551,14 +551,11 @@
       nextClassContainer.style.display = 'none';
     }
 
-    // Notifications
-    let scheduledTimeouts = [];
+    // Notifications - polls wall clock time instead of using setTimeout
+    const sentNotifications = new Set();
+    let lastCheckedDay = -1;
 
-    function scheduleNotifications() {
-      // Clear existing
-      scheduledTimeouts.forEach(t => clearTimeout(t));
-      scheduledTimeouts = [];
-
+    function checkNotifications() {
       try {
         const settings = loadSettings();
         if (isDisabled()) return;
@@ -568,46 +565,52 @@
         const schedule = getTodaySchedule();
         if (!schedule) return;
 
-        const delay = (settings.notificationDelay || 5) * 60 * 1000;
         const now = new Date();
+        const today = now.getDate();
+
+        // Reset sent notifications on a new day
+        if (today !== lastCheckedDay) {
+          sentNotifications.clear();
+          lastCheckedDay = today;
+        }
+
+        const delayMins = settings.notificationDelay || 5;
+        const delayMs = delayMins * 60 * 1000;
 
         for (const period of schedule) {
           const name = getLineName(period.line);
           if (!name) continue;
 
           const start = getClassTime(period, true);
-          const notifyTime = new Date(start.getTime() - delay);
+          const notifyTime = new Date(start.getTime() - delayMs);
+          const identifier = `${period.line}-${period.startHour}-${period.startMin}`;
 
-          if (notifyTime > now) {
-            const timeout = setTimeout(async () => {
+          // Send if we're past notify time but before class starts, and haven't sent yet
+          if (now >= notifyTime && now < start && !sentNotifications.has(identifier)) {
+            sentNotifications.add(identifier);
+            (async () => {
               try {
                 const reg = await navigator.serviceWorker.ready;
                 await reg.showNotification('Class Starting Soon', {
-                  body: `${name} starts in ${settings.notificationDelay} minutes`,
+                  body: `${name} starts in ${delayMins} minutes`,
                   icon: 'icon-192.png',
-                  tag: `class-${period.line}`,
-                  requireInteraction: false
+                  tag: `class-${period.line}`
                 });
-
-                // Auto-dismiss notification when class starts
-                setTimeout(async () => {
-                  try {
-                    const notifications = await reg.getNotifications({ tag: `class-${period.line}` });
-                    notifications.forEach(n => n.close());
-                  } catch (e) {
-                    console.error('Failed to close notification:', e);
-                  }
-                }, delay);
               } catch (e) {
                 console.error('Notification failed:', e);
               }
-            }, notifyTime - now);
-            scheduledTimeouts.push(timeout);
+            })();
           }
         }
       } catch (e) {
-        console.error('scheduleNotifications error:', e);
+        console.error('checkNotifications error:', e);
       }
+    }
+
+    // Keep old name for compatibility with other calls
+    function scheduleNotifications() {
+      sentNotifications.clear();
+      checkNotifications();
     }
 
     // Initialize
@@ -725,24 +728,13 @@
         }
       });
 
-      // Update status immediately and every 30 seconds
+      // Update status and check notifications every 30 seconds
       updateStatus();
-      setInterval(updateStatus, 30000);
-
-      // Schedule notifications
-      try {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          scheduleNotifications();
-        }
-      } catch (e) {}
-
-      // Re-schedule at midnight
-      const now = new Date();
-      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 1);
-      setTimeout(() => {
-        scheduleNotifications();
-        setInterval(scheduleNotifications, 24 * 60 * 60 * 1000);
-      }, midnight - now);
+      checkNotifications();
+      setInterval(() => {
+        updateStatus();
+        checkNotifications();
+      }, 30000);
     }
 
     // PWA Install prompt
